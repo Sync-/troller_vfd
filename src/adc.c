@@ -73,29 +73,38 @@ static void gpio_setup(void)
             GPIO_CNF_INPUT_ANALOG, GPIO8 );  
 }
 
-volatile uint16_t ADC_values[16];
+static volatile uint16_t ADC_values[16];
 volatile uint32_t status = 0;
 
 static void dma_setup(void) {
    rcc_periph_clock_enable(RCC_DMA1);
 
+   dma_disable_channel(DMA1, DMA_CHANNEL1);
    dma_channel_reset(DMA1, DMA_CHANNEL1);
 
+   //source
+
    dma_set_peripheral_address(DMA1, DMA_CHANNEL1, (uint32_t)&ADC1_DR);  
+   dma_disable_peripheral_increment_mode(DMA1, DMA_CHANNEL1);
+   dma_set_peripheral_size(DMA1, DMA_CHANNEL1, DMA_CCR_PSIZE_16BIT);
+
+   //dest
    dma_set_memory_address(DMA1, DMA_CHANNEL1, (uint32_t)ADC_values);
+   dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL1);
+   dma_set_memory_size(DMA1, DMA_CHANNEL1, DMA_CCR_MSIZE_16BIT);
+
+   //what and how much
    dma_set_number_of_data(DMA1, DMA_CHANNEL1, 7);
    dma_set_read_from_peripheral(DMA1, DMA_CHANNEL1);
-   dma_disable_peripheral_increment_mode(DMA1, DMA_CHANNEL1);
-   dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL1);
-   dma_set_peripheral_size(DMA1, DMA_CHANNEL1, DMA_CCR_PSIZE_16BIT);
-   dma_set_memory_size(DMA1, DMA_CHANNEL1, DMA_CCR_MSIZE_16BIT);
+
    dma_enable_circular_mode(DMA1, DMA_CHANNEL1);
    dma_set_priority(DMA1, DMA_CHANNEL1, DMA_CCR_PL_HIGH);
 
    dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL1);
-   nvic_set_priority(NVIC_DMA1_CHANNEL1_IRQ, 0);
    nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
+   nvic_set_priority(NVIC_DMA1_CHANNEL1_IRQ, 1);
   
+   adc_enable_dma(ADC1);
    dma_enable_channel(DMA1, DMA_CHANNEL1); 
 }
 
@@ -106,17 +115,15 @@ static void adc_setup(void)
 	rcc_periph_clock_enable(RCC_ADC1);
 
 	uint8_t channel_array[16];
-	/* Make sure the ADC doesn't run during config. */
 	adc_off(ADC1);
 
-	/* We configure everything for one single conversion. */
 	adc_enable_scan_mode(ADC1);
-//	adc_set_continuous_conversion_mode(ADC1);
-   adc_set_single_conversion_mode(ADC1);
+	adc_set_continuous_conversion_mode(ADC1);
+//   adc_set_single_conversion_mode(ADC1);
 	adc_disable_external_trigger_regular(ADC1);
 //   adc_enable_external_trigger_regular(ADC1, ADC_CR2_EXTSEL_SWSTART);
+   adc_set_dual_mode(ADC_CR1_DUALMOD_IND);
 	adc_set_right_aligned(ADC1);
-	/* We want to read the temperature sensor, so we have to enable it. */
 	adc_enable_temperature_sensor(ADC1);
 	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
 
@@ -127,8 +134,7 @@ static void adc_setup(void)
 	channel_array[4] = 6;
 	channel_array[5] = 7;
 	channel_array[6] = 8;
-	adc_set_regular_sequence(ADC1, 2, channel_array);
-   adc_enable_dma(ADC1);
+	adc_set_regular_sequence(ADC1, 7, channel_array);
 
 	adc_power_on(ADC1);
 
@@ -142,10 +148,8 @@ static void adc_setup(void)
 
 
 void dma1_channel1_isr(void) {
-   if(DMA_ISR_TCIF(DMA_CHANNEL1)) {
-      status = 1;
-      dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_ISR_GIF(DMA_CHANNEL1));
-   }
+
+   dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_ISR_TCIF(DMA_CHANNEL1));
 }
 
 int main(void)
@@ -154,25 +158,21 @@ int main(void)
 	gpio_setup();
 	gpio_clear(GPIOC, GPIO0);	                /* LED1 on */
 	usart_setup();
-   dma_setup();
 	adc_setup();
+   dma_setup();
 
-
-	gpio_set(GPIOC, GPIO15);		/* LED2 off */
-
-	adc_start_conversion_regular(ADC1);
+//	adc_start_conversion_regular(ADC1);
 //      while(!status) {
 //         __asm__("nop");
 //      }
 	gpio_set(GPIOC, GPIO0);	                /* LED1 on */
-	/* Continously convert and poll the temperature ADC. */
 	while (1) {
 
 	for (uint32_t i = 0; i < 800000; i++)    /* Wait a bit. */
 		__asm__("nop");
 		gpio_toggle(GPIOC, GPIO1); /* LED2 on */
 
-	adc_start_conversion_direct(ADC1);
+//	adc_start_conversion_direct(ADC1);
 	}
 
 	return 0;
