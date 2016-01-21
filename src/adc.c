@@ -79,12 +79,11 @@ volatile uint32_t status = 0;
 static void dma_setup(void) {
    rcc_periph_clock_enable(RCC_DMA1);
 
-   dma_disable_channel(DMA1, DMA_CHANNEL1);
    dma_channel_reset(DMA1, DMA_CHANNEL1);
 
    //source
 
-   dma_set_peripheral_address(DMA1, DMA_CHANNEL1, (uint32_t)&ADC1_DR);  
+   dma_set_peripheral_address(DMA1, DMA_CHANNEL1, (uint32_t)&ADC_DR(ADC1));  
    dma_disable_peripheral_increment_mode(DMA1, DMA_CHANNEL1);
    dma_set_peripheral_size(DMA1, DMA_CHANNEL1, DMA_CCR_PSIZE_16BIT);
 
@@ -101,11 +100,13 @@ static void dma_setup(void) {
    dma_set_priority(DMA1, DMA_CHANNEL1, DMA_CCR_PL_HIGH);
 
    dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL1);
-   nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
-   nvic_set_priority(NVIC_DMA1_CHANNEL1_IRQ, 1);
   
-   adc_enable_dma(ADC1);
    dma_enable_channel(DMA1, DMA_CHANNEL1); 
+
+   nvic_set_priority(NVIC_DMA1_CHANNEL1_IRQ, 0);
+   nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
+
+   adc_enable_dma(ADC1);
 }
 
 static void adc_setup(void)
@@ -118,14 +119,23 @@ static void adc_setup(void)
 	adc_off(ADC1);
 
 	adc_enable_scan_mode(ADC1);
-	adc_set_continuous_conversion_mode(ADC1);
+//	adc_set_continuous_conversion_mode(ADC1);
 //   adc_set_single_conversion_mode(ADC1);
 	adc_disable_external_trigger_regular(ADC1);
 //   adc_enable_external_trigger_regular(ADC1, ADC_CR2_EXTSEL_SWSTART);
-   adc_set_dual_mode(ADC_CR1_DUALMOD_IND);
 	adc_set_right_aligned(ADC1);
 	adc_enable_temperature_sensor(ADC1);
 	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
+
+
+	adc_power_on(ADC1);
+
+	/* Wait for ADC starting up. */
+	for (i = 0; i < 800000; i++)    /* Wait a bit. */
+		__asm__("nop");
+
+	adc_reset_calibration(ADC1);
+	adc_calibration(ADC1);
 
 	channel_array[0] = 0;
 	channel_array[1] = 1;
@@ -136,14 +146,7 @@ static void adc_setup(void)
 	channel_array[6] = 8;
 	adc_set_regular_sequence(ADC1, 7, channel_array);
 
-	adc_power_on(ADC1);
 
-	/* Wait for ADC starting up. */
-	for (i = 0; i < 800000; i++)    /* Wait a bit. */
-		__asm__("nop");
-
-	adc_reset_calibration(ADC1);
-	adc_calibration(ADC1);
 }
 
 
@@ -158,8 +161,8 @@ int main(void)
 	gpio_setup();
 	gpio_clear(GPIOC, GPIO0);	                /* LED1 on */
 	usart_setup();
-	adc_setup();
    dma_setup();
+	adc_setup();
 
 //	adc_start_conversion_regular(ADC1);
 //      while(!status) {
@@ -172,7 +175,8 @@ int main(void)
 		__asm__("nop");
 		gpio_toggle(GPIOC, GPIO1); /* LED2 on */
 
-//	adc_start_conversion_direct(ADC1);
+	adc_start_conversion_direct(ADC1);
+//      adc_start_conversion_regular(ADC1);
 	}
 
 	return 0;
