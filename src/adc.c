@@ -106,7 +106,6 @@ static void dma_setup(void) {
    nvic_set_priority(NVIC_DMA1_CHANNEL1_IRQ, 0);
    nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
 
-   adc_enable_dma(ADC1);
 }
 
 static void adc_setup(void)
@@ -136,6 +135,8 @@ static void adc_setup(void)
 
 	adc_reset_calibration(ADC1);
 	adc_calibration(ADC1);
+
+   adc_enable_dma(ADC1);
 
 	channel_array[0] = 0;
 	channel_array[1] = 1;

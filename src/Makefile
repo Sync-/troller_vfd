@@ -7,7 +7,7 @@ endif
 BINARY = adc
 
 # Comment the following line if you _don't_ have luftboot flashed!
-LDFLAGS += -Wl,-Ttext=0x8002000
+#LDFLAGS += -Wl,-Ttext=0x8002000
 CFLAGS += -std=c99
 LDSCRIPT = ld/stm32-h103.ld
 
