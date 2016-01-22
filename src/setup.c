@@ -45,7 +45,7 @@ void usart_setup(void)
 	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
 		      GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO2);
 
-	usart_set_baudrate(USART2, 115200);
+	usart_set_baudrate(USART2, 921600);
 	usart_set_databits(USART2, 8);
 	usart_set_stopbits(USART2, USART_STOPBITS_1);
 	usart_set_mode(USART2, USART_MODE_TX_RX);
