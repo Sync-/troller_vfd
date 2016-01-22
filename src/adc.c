@@ -51,8 +51,8 @@ int main(void)
 
    uint32_t delay = 0,tick_before = 0;
 
-   int32_t cur_a, cur_b, cur_c;
-   uint32_t volt_dc, volt_a, volt_b, volt_c;
+   int32_t cur_a, cur_b, cur_c, cur_a_cal, cur_b_cal, cur_c_cal;
+   uint32_t volt_dc, volt_a, volt_b, volt_c, temperature, vref;
 
    uint16_t sine_deg = 0, pwm_a = 0, pwm_b = 0, pwm_c = 0;
    double sine_rad = 0;
@@ -65,13 +65,31 @@ int main(void)
 
    char text[10] = "test\r\n";
 
+   //Current sensor zero cal
+
+   for (uint32_t i = 0; i < 40000; i++)    /* Wait a bit. */
+      __asm__("nop");
+   double voltperbit = 1.2 / ADC_values[8];
+   uint32_t bitspervolt = (uint32_t) 1.0 / voltperbit;
+   double a_offset = (1.0 - (voltperbit * ADC_values[4]))*1000.0;
+   uint8_t mv_per_amp = 66; //Could be used to factory cal sensors
+   double current_res = voltperbit / (mv_per_amp/1000000.0);
+   uint8_t current_res_int = (uint8_t) current_res;
+   cur_a_cal = (int32_t) a_offset;
+cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
+
+
    while (1) {
 
       volt_dc = 117 * ADC_values[0];
       volt_a = 117 * ADC_values[1];
       volt_b = 117 * ADC_values[2];
       volt_c = 117 * ADC_values[3];
-      
+    
+   cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
+      vref = ADC_values[8];   
+      temperature = ADC_values[7];   
+ 
       tick_before = tick_ms;
 
       if(sine_deg > 360) {
@@ -94,9 +112,9 @@ int main(void)
       delay = tick_ms - tick_before;
 
       transferred = 0;
-      dma_write(text, 6);
+      dma_write(&cur_a, 4);
 
-      adc_start_conversion_direct(ADC1);
+//      adc_start_conversion_direct(ADC1);
    }
 
    return 0;

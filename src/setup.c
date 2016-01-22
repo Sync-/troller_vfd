@@ -69,7 +69,8 @@ void adc_setup(void)
 
 	adc_enable_scan_mode(ADC1);
 	adc_set_continuous_conversion_mode(ADC1);
-	adc_disable_external_trigger_regular(ADC1);
+//	adc_disable_external_trigger_regular(ADC1);
+   adc_enable_external_trigger_regular(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
 	adc_set_right_aligned(ADC1);
 	adc_enable_temperature_sensor(ADC1);
 	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
@@ -92,7 +93,9 @@ void adc_setup(void)
 	channel_array[4] = 6;
 	channel_array[5] = 7;
 	channel_array[6] = 8;
-	adc_set_regular_sequence(ADC1, 7, channel_array);
+   channel_array[7] = 16; //Temperature
+   channel_array[8] = 17; //Vrefint
+	adc_set_regular_sequence(ADC1, 9, channel_array);
 
 }
 
@@ -113,7 +116,8 @@ void timer_setup(void) {
    rcc_periph_clock_enable(RCC_TIM1);
 
    timer_reset             (TIM1);
-   timer_set_mode          (TIM1, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
+   timer_set_mode          (TIM1, TIM_CR1_CKD_CK_INT,
+                        TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
    timer_set_prescaler     (TIM1, 8);
    timer_set_period        (TIM1, 2000);
    timer_set_oc_mode       (TIM1, TIM_OC1, TIM_OCM_PWM1);
@@ -132,5 +136,16 @@ void timer_setup(void) {
    timer_enable_preload    (TIM1);
    timer_enable_counter    (TIM1);
 
+
+   rcc_periph_clock_enable(RCC_TIM2);
+
+   timer_reset(TIM2);
+   timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT,
+                           TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
+   timer_set_prescaler(TIM2, 8); //9MHz clkin
+   timer_set_period(TIM2, 900);  //Min 10kHz
+   timer_set_clock_division(TIM2, 0);
+   timer_set_master_mode(TIM2, TIM_CR2_MMS_UPDATE);
+   timer_enable_counter(TIM2);
 
 }

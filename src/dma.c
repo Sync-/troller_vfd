@@ -18,7 +18,7 @@ void dma_setup(void) {
    dma_set_memory_size(DMA1, DMA_CHANNEL1, DMA_CCR_MSIZE_16BIT);
 
    //what and how much
-   dma_set_number_of_data(DMA1, DMA_CHANNEL1, 7);
+   dma_set_number_of_data(DMA1, DMA_CHANNEL1, 9);
    dma_set_read_from_peripheral(DMA1, DMA_CHANNEL1);
 
    dma_enable_circular_mode(DMA1, DMA_CHANNEL1);
