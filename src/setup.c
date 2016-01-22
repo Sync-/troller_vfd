@@ -125,7 +125,7 @@ void timer_setup(void) {
    timer_set_oc_mode       (TIM1, TIM_OC3, TIM_OCM_PWM1);
    timer_set_oc_polarity_low(TIM1, TIM_OC1);
    timer_set_oc_polarity_low(TIM1, TIM_OC2);
-   timer_set_oc_polarity_low(TIM1, TIM_OC4);
+   timer_set_oc_polarity_low(TIM1, TIM_OC3);
    timer_enable_oc_output  (TIM1, TIM_OC1);
    timer_enable_oc_output  (TIM1, TIM_OC2);
    timer_enable_oc_output  (TIM1, TIM_OC3);
@@ -143,7 +143,7 @@ void timer_setup(void) {
    timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT,
                            TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
    timer_set_prescaler(TIM2, 8); //9MHz clkin
-   timer_set_period(TIM2, 900);  //Min 10kHz
+   timer_set_period(TIM2, 90);  //Min 10kHz
    timer_set_clock_division(TIM2, 0);
    timer_set_master_mode(TIM2, TIM_CR2_MMS_UPDATE);
    timer_enable_counter(TIM2);
