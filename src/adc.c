@@ -85,16 +85,16 @@ int main(void)
 
    uint16_t sine240 = 0, sine120 = 0;
 
-   int16_t angle_per_tick = 1;
+   int32_t angle_per_tick = 1;
 
-   int16_t frequency = 25, ramp_start = 10, ramp_end = 50;
+   int16_t frequency = 25, ramp_start = 10, ramp_end = 30;
    int16_t delta = (ramp_end - ramp_start);   
 
    uint16_t ticks_per_s = 500;
 
-   angle_per_tick = (int16_t) (frequency * 360) / ticks_per_s;
+   angle_per_tick = (int32_t) (frequency * 360) / ticks_per_s;
 
-   uint32_t ramptime_ms = 5000;
+   uint32_t ramptime_ms = 10000;
 
    int16_t delta_mul;
 
@@ -102,11 +102,18 @@ int main(void)
 
    frequency = ramp_start;
 
+   uint8_t run = 1;
+
+               uint64_t brake_first = 0;
+               uint64_t braketime = 5000;
    while (1) {
+      if(tick_ms == 15000) {
+         run = 2;
+      }
       if(tick_ms > tick_before) {
 
          tick_before = tick_ms;
-         angle_per_tick = (int16_t) (frequency * 360) / ticks_per_s;
+         angle_per_tick = (int32_t) (frequency * 360) / ticks_per_s;
 
          if(tick_ms <= ramptime_ms) {
             ramptimemul = tick_ms/(double)ramptime_ms;
@@ -114,7 +121,7 @@ int main(void)
 
             frequency = ramp_start + delta_mul;
          }
-         if(tick_ms%2 == 0) {
+         if(tick_ms%2 == 0 && run == 1) {
             volt_dc = 117 * ADC_values[0];
             volt_a = 117 * ADC_values[1];
             volt_b = 117 * ADC_values[2];
@@ -181,7 +188,22 @@ int main(void)
             //      for (uint32_t i = 0; i < 8000; i++)    /* Wait a bit. */
             //         __asm__("nop");
             gpio_toggle(GPIOC, GPIO1);
-
+         } else {
+            //DC brake for 2s
+            if(run == 2) {
+               brake_first = tick_ms;
+               timer_set_oc_value(TIM1, TIM_OC1, 1800);
+               timer_set_oc_value(TIM1, TIM_OC2, 1000);
+               timer_set_oc_value(TIM1, TIM_OC3, 200);
+               run = 3;
+            }
+            if (run == 3 && tick_ms - brake_first > braketime) {
+               timer_set_oc_value(TIM1, TIM_OC1, 0);
+               timer_set_oc_value(TIM1, TIM_OC2, 0);
+               timer_set_oc_value(TIM1, TIM_OC3, 0);
+            }
+         }
+         if(tick_ms%2 == 0) {
             uint8_t foo[10] = {0};
 
             foo[0] = 0xff;
