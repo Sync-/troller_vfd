@@ -119,7 +119,8 @@ void timer_setup(void) {
    timer_set_mode          (TIM1, TIM_CR1_CKD_CK_INT,
                         TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
    timer_set_prescaler     (TIM1, 8);
-   timer_set_period        (TIM1, 2000);
+//   timer_set_period        (TIM1, 2000);
+   timer_set_period        (TIM1,1999);
    timer_set_oc_mode       (TIM1, TIM_OC1, TIM_OCM_PWM1);
    timer_set_oc_mode       (TIM1, TIM_OC2, TIM_OCM_PWM1);
    timer_set_oc_mode       (TIM1, TIM_OC3, TIM_OCM_PWM1);
