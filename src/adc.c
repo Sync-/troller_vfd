@@ -32,6 +32,27 @@ void dma1_channel1_isr(void) {
    dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_ISR_TCIF(DMA_CHANNEL1));
 }
 
+int32_t isin_S3(int32_t x)
+{   
+   // S(x) = x * ( (3<<p) - (x*x>>r) ) >> s
+   // n : Q-pos for quarter circle             13
+   // A : Q-pos for output                     12
+   // p : Q-pos for parentheses intermediate   15
+   // r = 2n-p                                 11
+   // s = A-1-p-n                              17
+
+   static const int32_t qN = 13, qA= 12, qP= 15, qR= 2*13-15, qS= 13+15+1-12;
+
+   x= x<<(30-qN);          // shift to full s32 range (Q13->Q30)
+
+   if( (x^(x<<1)) < 0)     // test for quadrant 1 or 2
+      x= (1<<31) - x;
+
+   x= x>>(30-qN);
+
+   return x * ( (3<<qP) - (x*x>>qR) ) >> qS;
+}
+
 int main(void)
 {
    rcc_clock_setup_in_hse_8mhz_out_72mhz();
@@ -55,8 +76,9 @@ int main(void)
    int32_t cur_a, cur_b, cur_c, cur_a_cal, cur_b_cal, cur_c_cal;
    uint32_t volt_dc, volt_a, volt_b, volt_c, temperature, vref;
 
-   int16_t sine_deg = 0, pwm_a = 0, pwm_b = 0, pwm_c = 0;
-   double sine_rad = 0;
+   int32_t sine_deg = 0, pwm_a = 0, pwm_b = 0, pwm_c = 0;
+   int32_t sine_a = 0, sine_b = 0, sine_c = 0;
+   //   float sine_rad = 0;
 
 
    gpio_set(GPIOC, GPIO0);
@@ -70,24 +92,24 @@ int main(void)
 
    for (uint32_t i = 0; i < 40000; i++)    /* Wait a bit. */
       __asm__("nop");
-   double voltperbit = 1.2 / ADC_values[8];
+   float voltperbit = 1.2 / ADC_values[8];
    uint32_t bitspervolt = (uint32_t) 1.0 / voltperbit;
-   double a_offset = (1.0 - (voltperbit * ADC_values[4]))*1000.0;
-   double b_offset = (1.0 - (voltperbit * ADC_values[5]))*1000.0;
-   double c_offset = (1.0 - (voltperbit * ADC_values[6]))*1000.0;
+   float a_offset = (1.0 - (voltperbit * ADC_values[4]))*1000.0;
+   float b_offset = (1.0 - (voltperbit * ADC_values[5]))*1000.0;
+   float c_offset = (1.0 - (voltperbit * ADC_values[6]))*1000.0;
    uint8_t mv_per_amp = 66; //Could be used to factory cal sensors
-   double current_res = voltperbit / (mv_per_amp/1000000.0);
+   float current_res = voltperbit / (mv_per_amp/1000000.0);
    uint8_t current_res_int = (uint8_t) current_res;
    cur_a_cal = (int32_t) a_offset;
    cur_b_cal = (int32_t) b_offset;
    cur_c_cal = (int32_t) c_offset;
-   cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
+   //   cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
 
    uint16_t sine240 = 0, sine120 = 0;
 
-   int32_t angle_per_tick = 1;
+   int32_t angle_per_tick = 14;
 
-   int16_t frequency = 25, ramp_start = 10, ramp_end = 30;
+   int16_t frequency = 5, ramp_start = 5, ramp_end = 20;
    int16_t delta = (ramp_end - ramp_start);   
 
    uint16_t ticks_per_s = 500;
@@ -98,25 +120,30 @@ int main(void)
 
    int16_t delta_mul;
 
-   double ramptimemul;
+   float ramptimemul;
 
    frequency = ramp_start;
 
    uint8_t run = 1;
 
-               uint64_t brake_first = 0;
-               uint64_t braketime = 5000;
+   uint64_t brake_first = 0;
+   uint64_t braketime = 5000;
+
+   int32_t scaler = 0;
+   float pwm_factor = 0;
+   int32_t u_desired = 0;
    while (1) {
-      if(tick_ms == 15000) {
-         run = 2;
-      }
       if(tick_ms > tick_before) {
 
+         if(tick_ms%5000 == 0) {
+            //         run = 2;
+            //         angle_per_tick = angle_per_tick * -1;
+         }
          tick_before = tick_ms;
          angle_per_tick = (int32_t) (frequency * 360) / ticks_per_s;
 
          if(tick_ms <= ramptime_ms) {
-            ramptimemul = tick_ms/(double)ramptime_ms;
+            ramptimemul = tick_ms/(float)ramptime_ms;
             delta_mul = (delta * ramptimemul);
 
             frequency = ramp_start + delta_mul;
@@ -138,18 +165,28 @@ int main(void)
                sine_deg = 0;
             }
 
-            sine240 = sine_deg + 240;
-            if(sine240 >= 360) {
-               sine240 = sine240 - 360;
-            }
-            sine120 = sine_deg + 120;
-            if(sine120 >= 360) {
-               sine120 = sine120 - 360;
+            sine_a = isin_S3(sine_deg*91);
+            sine_b = isin_S3((sine_deg+240)*91);
+            sine_c = isin_S3((sine_deg+120)*91);
+
+            u_desired = 4.6 * frequency * 1000;
+            pwm_factor = u_desired/(volt_dc*1.0);
+
+            scaler = (int32_t) 1000 * pwm_factor; 
+
+            if(pwm_factor > 1.0) {
+               pwm_factor = 1.0;
             }
 
-            pwm_a = 1100 * sin((M_PI/180.0)*(sine_deg)); 
-            pwm_b = 1100 * sin((M_PI/180.0)*(sine240)); 
-            pwm_c = 1100 * sin((M_PI/180.0)*(sine120)); 
+            pwm_a = ((sine_a + 4096) * 1000) >> 12; //0-2000 from -4096 to +4096
+            pwm_b = ((sine_b + 4096) * 1000) >> 12;
+            pwm_c = ((sine_c + 4096) * 1000) >> 12;
+
+            //U/f = 4.6
+
+            pwm_a = (int32_t) pwm_a * pwm_factor; 
+            pwm_b = (int32_t) pwm_b * pwm_factor; 
+            pwm_c = (int32_t) pwm_c * pwm_factor; 
 
             if(pwm_a < pwm_b) {
                if(pwm_a < pwm_c) {
@@ -174,9 +211,19 @@ int main(void)
 
             }
 
-            pwm_a = 2000 - pwm_a;
-            pwm_b = 2000 - pwm_b;
-            pwm_c = 2000 - pwm_c;
+            //            pwm_a = 2000 - pwm_a;
+            //            pwm_b = 2000 - pwm_b;
+            //            pwm_c = 2000 - pwm_c;
+
+            if(pwm_a < 10) {
+               pwm_a = 10;
+            }
+            if(pwm_b < 10) {
+               pwm_b = 10;
+            }
+            if(pwm_c < 10) {
+               pwm_c = 10;
+            }
 
             timer_set_oc_value(TIM1, TIM_OC1, pwm_a);
             timer_set_oc_value(TIM1, TIM_OC2, pwm_b);
@@ -207,10 +254,13 @@ int main(void)
             uint8_t foo[10] = {0};
 
             foo[0] = 0xff;
-            foo[1] = (uint8_t) (volt_dc / 500);
-            foo[2] = (uint8_t) (pwm_a / 10);
-            foo[3] = (uint8_t) (pwm_b / 10);
-            foo[4] = (uint8_t) (pwm_c / 10);
+            foo[1] = 0xff;
+            foo[2] = 0xff;
+            foo[4] = 0xff;
+            //            foo[1] = (uint8_t) (volt_dc / 500);
+            //            foo[2] = (uint8_t) (pwm_a / 10);
+            //            foo[3] = (uint8_t) (pwm_b / 10);
+            //            foo[4] = (uint8_t) (pwm_c / 10);
             //      foo[5] = (uint8_t) (ADC_values[1]);
             //      foo[6] = (uint8_t) (ADC_values[2]);
             //      foo[7] = (uint8_t) (ADC_values[3]);

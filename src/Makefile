@@ -74,7 +74,7 @@ SCRIPT_DIR  = $(OPENCM3_DIR)/scripts
 CFLAGS      += -O0 -g -std=c11 -ggdb3 -lm
 CFLAGS      += -Wextra -Wshadow -Wimplicit-function-declaration
 CFLAGS      += -Wredundant-decls -Wmissing-prototypes -Wstrict-prototypes
-CFLAGS      += -fno-common -ffunction-sections -fdata-sections
+CFLAGS      += -fno-common -ffunction-sections -fdata-sections -fsingle-precision-constant
 
 ###############################################################################
 # C++ flags
