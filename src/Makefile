@@ -5,7 +5,7 @@ NULL     := 2>/dev/null
 endif
 
 BINARY = adc
-OBJS = globals.o dma.o setup.o
+OBJS = globals.o dma.o setup.o pwm.o
 
 # Comment the following line if you _don't_ have luftboot flashed!
 #LDFLAGS += -Wl,-Ttext=0x8002000

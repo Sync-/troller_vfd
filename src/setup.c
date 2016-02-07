@@ -117,7 +117,7 @@ void timer_setup(void) {
 
    timer_reset             (TIM1);
    timer_set_mode          (TIM1, TIM_CR1_CKD_CK_INT,
-                        TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
+                        TIM_CR1_CMS_CENTER_3, TIM_CR1_DIR_UP);
    timer_set_prescaler     (TIM1, 8);
 //   timer_set_period        (TIM1, 2000);
    timer_set_period        (TIM1,1999);
@@ -148,5 +148,8 @@ void timer_setup(void) {
    timer_set_clock_division(TIM2, 0);
    timer_set_master_mode(TIM2, TIM_CR2_MMS_UPDATE);
    timer_enable_counter(TIM2);
+
+   DBGMCU_CR |= DBGMCU_CR_TIM1_STOP;
+   DBGMCU_CR |= DBGMCU_CR_TIM2_STOP;
 
 }
