@@ -21,7 +21,8 @@
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/flash.h>
-#include <math.h>
+
+#include <string.h>
 
 #include "globals.h"
 #include "setup.h"
@@ -65,43 +66,44 @@ int main(void)
 
    for (uint32_t i = 0; i < 40000; i++)    /* Wait a bit. */
       __asm__("nop");
-/*   float voltperbit = 1.2 / ADC_values[8];
-   uint32_t bitspervolt = (uint32_t) 1.0 / voltperbit;
-   float a_offset = (1.0 - (voltperbit * ADC_values[4]))*1000.0;
-   float b_offset = (1.0 - (voltperbit * ADC_values[5]))*1000.0;
-   float c_offset = (1.0 - (voltperbit * ADC_values[6]))*1000.0;
-   uint8_t mv_per_amp = 66; //Could be used to factory cal sensors
-   float current_res = voltperbit / (mv_per_amp/1000000.0);
-   uint8_t current_res_int = (uint8_t) current_res;
-   cur_a_cal = (int32_t) a_offset;
-   cur_b_cal = (int32_t) b_offset;
-   cur_c_cal = (int32_t) c_offset;
+   /*   float voltperbit = 1.2 / ADC_values[8];
+        uint32_t bitspervolt = (uint32_t) 1.0 / voltperbit;
+        float a_offset = (1.0 - (voltperbit * ADC_values[4]))*1000.0;
+        float b_offset = (1.0 - (voltperbit * ADC_values[5]))*1000.0;
+        float c_offset = (1.0 - (voltperbit * ADC_values[6]))*1000.0;
+        uint8_t mv_per_amp = 66; //Could be used to factory cal sensors
+        float current_res = voltperbit / (mv_per_amp/1000000.0);
+        uint8_t current_res_int = (uint8_t) current_res;
+        cur_a_cal = (int32_t) a_offset;
+        cur_b_cal = (int32_t) b_offset;
+        cur_c_cal = (int32_t) c_offset;
    //   cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
-*/
+    */
    int32_t angle_per_tick = 14;
 
-   int16_t frequency = 5, ramp_start = 5, ramp_end = 50;
-   int16_t delta = (ramp_end - ramp_start);   
+   int16_t frequency = 5, ramp_start = 5, ramp_end = 20;
 
    static uint16_t ticks_per_s = 500;
 
    angle_per_tick = (int32_t) (frequency * 360) / ticks_per_s;
 
    uint32_t ramptime_ms = 10000;
+   uint64_t ramp_start_ms = 0;
 
-   int16_t delta_mul;
-
-   float ramptimemul;
+   uint32_t slope = (ramp_end-ramp_start)*131072/10000;
 
    frequency = ramp_start;
 
-   state = RUNNING;
+   state = RAMPING;
+   direction = UP;
 
    uint64_t brake_first = 0;
-   uint64_t braketime = 5000;
+   uint64_t braketime = 500;
 
    int32_t pwm_factor = 0;
    int32_t volt_requested = 0;
+
+   uint8_t dcbrakeonstop = 1;
 
    while (1) {
       if(tick_ms > tick_before) {
@@ -110,32 +112,64 @@ int main(void)
 
          angle_per_tick = (int32_t) (frequency * 360) / ticks_per_s;
 
-         if(tick_ms <= ramptime_ms) {
-            ramptimemul = tick_ms/(float)ramptime_ms;
-            delta_mul = (delta * ramptimemul);
-
-            frequency = ramp_start + delta_mul;
+         if(tick_ms == 20000) {
+//            state = RAMPING;
+//            direction = DOWN;
+            state = STOPPING;
          }
+
          if(tick_ms%2 == 0 ) {
             volt_dc = 117 * ADC_values[0];
             volt_a = 117 * ADC_values[1];
             volt_b = 117 * ADC_values[2];
             volt_c = 117 * ADC_values[3];
 
-/*            cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
-            cur_c = (bitspervolt - (ADC_values[5] + cur_b_cal))* current_res_int;
-            cur_b = (bitspervolt - (ADC_values[6] + cur_c_cal))* current_res_int;
-             vref = ADC_values[8];   
-            temperature = ADC_values[7]; */  
-            if(state == RAMPING) {
+            /*            cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
+                          cur_c = (bitspervolt - (ADC_values[5] + cur_b_cal))* current_res_int;
+                          cur_b = (bitspervolt - (ADC_values[6] + cur_c_cal))* current_res_int;
+                          vref = ADC_values[8];   
+                          temperature = ADC_values[7]; */  
+            if(state == RAMPING || state == STOPPING) {
+               if(ramp_start_ms == 0) {
+                  ramp_start_ms = tick_ms;
+                  gpio_toggle(GPIOC, GPIO1);
+               }
+               if(tick_ms < (ramp_start_ms + ramptime_ms)) {
+                  if(direction == UP) {
+                     frequency = ((slope * (tick_ms - ramp_start_ms))>>17)+ramp_start;
+                  } else {
 
+                     frequency = (-1)*((slope*(tick_ms-ramp_start_ms))>>17)+ramp_end;
+                     if(frequency < ramp_start) {
+                        frequency = ramp_start;
+                     }
+                  }
+               } else if(state != STOPPING){
+                  state = RUNNING;
+                  ramp_start_ms = 0;
+                  gpio_toggle(GPIOC, GPIO1);
+                  if(direction == UP) {
+                     frequency = ramp_end;
+                  } else {
+                     frequency = ramp_start;
+                  }
+               } else {
+                  if(dcbrakeonstop) {
+                     state = DC_BRAKE;
+                  } else {
+                     state = STOPPED;
+                  }
+               }
             }
-            if(state == RUNNING || state == RAMPING) {
+            if(state == RUNNING || state == RAMPING || state == STOPPING) {
                if(sine_deg > 360) {
                   sine_deg = 0;
                }
+               if (state == STOPPING) {
+                  direction = DOWN;
+               }
 
-               volt_requested = frequency * 460;
+               volt_requested = frequency * 460; //4.6 -> 4600
 
                setpwm(sine_deg, volt_requested, volt_dc,3);
 
@@ -146,16 +180,15 @@ int main(void)
                   brake_first = tick_ms;
                   dcbrake(50);
                   state = STOPPED;
-               }
-               if (state == STOPPED && tick_ms - brake_first > braketime) {
+               } else if (state == STOPPED && tick_ms - brake_first > braketime) {
                   stop();
-               }
+               } 
             }
-
-            tx_buffer[0] = 0xff;
-            tx_buffer[1] = 0xff;
-            tx_buffer[2] = 0xff;
-            tx_buffer[4] = (uint8_t)pwm_factor;
+            /*
+               tx_buffer[0] = 0xff;
+               tx_buffer[1] = 0xff;
+               tx_buffer[2] = 0xff;
+               tx_buffer[4] = (uint8_t)pwm_factor;
             //            tx_buffer[1] = (uint8_t) (volt_dc / 500);
             //            tx_buffer[2] = (uint8_t) (pwm.pwm_a / 10);
             //            tx_buffer[3] = (uint8_t) (pwm.pwm_b / 10);
@@ -170,9 +203,9 @@ int main(void)
             //      tx_buffer[6] = 0x00;
             //      tx_buffer[7] = 0x00;
             tx_buffer[8] = 0x80;
-
-            transferred = 0;
-            dma_write(tx_buffer, 9);
+             */
+          //  transferred = 0;
+          //  dma_write(yolobuffer, 6);
          }
       }
    }
