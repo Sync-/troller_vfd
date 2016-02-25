@@ -10,3 +10,4 @@
 
 void dma_setup(void);
 void dma_write(char *data, uint32_t size);
+void dma_read(char *data, uint32_t size);

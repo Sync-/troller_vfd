@@ -62,6 +62,7 @@ int main(void)
 
    char text[10] = "test\r\n";
 
+
    //Current sensor zero cal
 
    for (uint32_t i = 0; i < 40000; i++)    /* Wait a bit. */
@@ -81,16 +82,16 @@ int main(void)
     */
    int32_t angle_per_tick = 14;
 
-   int16_t frequency = 5, ramp_start = 5, ramp_end = 20;
+   int16_t frequency = 5, ramp_start = 5, ramp_end = 50;
 
    static uint16_t ticks_per_s = 500;
 
    angle_per_tick = (int32_t) (frequency * 360) / ticks_per_s;
 
-   uint32_t ramptime_ms = 10000;
+   uint32_t ramptime_ms = 5000;
    uint64_t ramp_start_ms = 0;
 
-   uint32_t slope = (ramp_end-ramp_start)*131072/10000;
+   uint32_t slope = (ramp_end-ramp_start)*131072/ramptime_ms;
 
    frequency = ramp_start;
 
@@ -119,7 +120,7 @@ int main(void)
          }
 
          if(tick_ms%2 == 0 ) {
-            volt_dc = 117 * ADC_values[0];
+            volt_dc = 158 * ADC_values[0];
             volt_a = 117 * ADC_values[1];
             volt_b = 117 * ADC_values[2];
             volt_c = 117 * ADC_values[3];
@@ -137,6 +138,9 @@ int main(void)
                if(tick_ms < (ramp_start_ms + ramptime_ms)) {
                   if(direction == UP) {
                      frequency = ((slope * (tick_ms - ramp_start_ms))>>17)+ramp_start;
+                     if(frequency > ramp_end) {
+                        frequency = ramp_end;
+                     }
                   } else {
 
                      frequency = (-1)*((slope*(tick_ms-ramp_start_ms))>>17)+ramp_end;
@@ -169,7 +173,7 @@ int main(void)
                   direction = DOWN;
                }
 
-               volt_requested = frequency * 460; //4.6 -> 4600
+               volt_requested = frequency * 1000; //4.6 -> 4600
 
                setpwm(sine_deg, volt_requested, volt_dc,3);
 
@@ -178,16 +182,15 @@ int main(void)
             } else {
                if(state == DC_BRAKE) {
                   brake_first = tick_ms;
-                  dcbrake(50);
+                  dcbrake(10);
                   state = STOPPED;
                } else if (state == STOPPED && tick_ms - brake_first > braketime) {
                   stop();
                } 
             }
-            /*
                tx_buffer[0] = 0xff;
-               tx_buffer[1] = 0xff;
-               tx_buffer[2] = 0xff;
+               tx_buffer[1] = (uint8_t) (volt_dc/1000);
+               tx_buffer[2] = (uint8_t) frequency;
                tx_buffer[4] = (uint8_t)pwm_factor;
             //            tx_buffer[1] = (uint8_t) (volt_dc / 500);
             //            tx_buffer[2] = (uint8_t) (pwm.pwm_a / 10);
@@ -203,9 +206,9 @@ int main(void)
             //      tx_buffer[6] = 0x00;
             //      tx_buffer[7] = 0x00;
             tx_buffer[8] = 0x80;
-             */
-          //  transferred = 0;
-          //  dma_write(yolobuffer, 6);
+
+            transferred = 0;
+            dma_write(tx_buffer, 9);
          }
       }
    }

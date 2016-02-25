@@ -10,9 +10,11 @@
 typedef enum {DISABLED = 0, STOPPED, RUNNING, RAMPING, DC_BRAKE, STOPPING} state_t;
 typedef enum {UP, DOWN} direction_t;
 
-extern uint8_t tx_buffer[];
+volatile extern uint8_t tx_buffer[];
+volatile extern uint8_t rx_buffer[];
 extern state_t state;
 extern direction_t direction;
 extern uint32_t transferred;
+extern uint32_t received;
 extern uint16_t ADC_values[];
 extern uint64_t tick_ms;

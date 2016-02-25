@@ -44,6 +44,8 @@ void usart_setup(void)
 
 	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
 		      GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO2);
+	gpio_set_mode(GPIOA, GPIO_MODE_INPUT,
+		      GPIO_CNF_INPUT_FLOAT, GPIO3);
 
 	usart_set_baudrate(USART2, 921600);
 	usart_set_databits(USART2, 8);
@@ -56,6 +58,9 @@ void usart_setup(void)
 
 	nvic_set_priority(NVIC_DMA1_CHANNEL7_IRQ, 1);
 	nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ);
+
+   nvic_set_priority(NVIC_DMA1_CHANNEL6_IRQ, 1);
+   nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ);
 }
 
 void adc_setup(void)
