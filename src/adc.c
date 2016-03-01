@@ -23,6 +23,7 @@
 #include <libopencm3/stm32/flash.h>
 
 #include <string.h>
+#include <stdfix.h>
 
 #include "globals.h"
 #include "setup.h"
@@ -50,6 +51,8 @@ int main(void)
 
    uint32_t delay = 0,tick_before = 0;
 
+   accum sdf = 2.4k;
+
    int32_t cur_a, cur_b, cur_c, cur_a_cal, cur_b_cal, cur_c_cal;
    uint32_t volt_dc, volt_a, volt_b, volt_c, temperature, vref;
 
@@ -67,23 +70,9 @@ int main(void)
 
    for (uint32_t i = 0; i < 40000; i++)    /* Wait a bit. */
       __asm__("nop");
-   /*   float voltperbit = 1.2 / ADC_values[8];
-        uint32_t bitspervolt = (uint32_t) 1.0 / voltperbit;
-        float a_offset = (1.0 - (voltperbit * ADC_values[4]))*1000.0;
-        float b_offset = (1.0 - (voltperbit * ADC_values[5]))*1000.0;
-        float c_offset = (1.0 - (voltperbit * ADC_values[6]))*1000.0;
-        uint8_t mv_per_amp = 66; //Could be used to factory cal sensors
-        float current_res = voltperbit / (mv_per_amp/1000000.0);
-        uint8_t current_res_int = (uint8_t) current_res;
-        cur_a_cal = (int32_t) a_offset;
-        cur_b_cal = (int32_t) b_offset;
-        cur_c_cal = (int32_t) c_offset;
-   //   cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
-    */
+
    int32_t angle_per_tick = 14;
-
    int16_t frequency = 5, ramp_start = 5, ramp_end = 50;
-
    static uint16_t ticks_per_s = 500;
 
    angle_per_tick = (int32_t) (frequency * 360) / ticks_per_s;
@@ -106,7 +95,27 @@ int main(void)
 
    uint8_t dcbrakeonstop = 1;
 
+   uint32_t bufferpos = 0, bufferpos_prev = 0;
+   uint32_t avalible = 0;
+   uint32_t rxpos = 0;
+
    while (1) {
+
+      bufferpos = 100 - DMA1_CNDTR6;
+
+      avalible = (bufferpos - rxpos + 100)%100;
+      if(bufferpos != bufferpos_prev) {
+         bufferpos_prev = bufferpos;
+
+         for(uint16_t i; i <= avalible; i++) {
+            tx_buffer[i] = rx_buffer[bufferpos-avalible+rxpos];
+            rxpos++;
+         }
+
+         transferred = 0;
+         dma_write(tx_buffer, 9);
+      }
+
       if(tick_ms > tick_before) {
 
          tick_before = tick_ms;
@@ -125,11 +134,10 @@ int main(void)
             volt_b = 117 * ADC_values[2];
             volt_c = 117 * ADC_values[3];
 
-            /*            cur_a = (bitspervolt - (ADC_values[4] + cur_a_cal))* current_res_int;
-                          cur_c = (bitspervolt - (ADC_values[5] + cur_b_cal))* current_res_int;
-                          cur_b = (bitspervolt - (ADC_values[6] + cur_c_cal))* current_res_int;
-                          vref = ADC_values[8];   
-                          temperature = ADC_values[7]; */  
+            if(volt_dc > 150*1000) {
+               state = DISABLED;
+            }
+
             if(state == RAMPING || state == STOPPING) {
                if(ramp_start_ms == 0) {
                   ramp_start_ms = tick_ms;
@@ -175,7 +183,7 @@ int main(void)
 
                volt_requested = frequency * 1000; //4.6 -> 4600
 
-               setpwm(sine_deg, volt_requested, volt_dc,3);
+               setpwm(sine_deg, volt_requested, volt_dc, 3);
 
                sine_deg = sine_deg + angle_per_tick;
 
@@ -187,6 +195,9 @@ int main(void)
                } else if (state == STOPPED && tick_ms - brake_first > braketime) {
                   stop();
                } 
+            }
+            if(state == DISABLED) {
+               disable();
             }
                tx_buffer[0] = 0xff;
                tx_buffer[1] = (uint8_t) (volt_dc/1000);

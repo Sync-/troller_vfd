@@ -35,7 +35,7 @@ void dma_setup(void) {
 
    dma_set_peripheral_address(DMA1, DMA_CHANNEL6, (uint32_t)&USART2_DR);
    dma_set_memory_address(DMA1, DMA_CHANNEL6, (uint32_t)rx_buffer);
-   dma_set_number_of_data(DMA1, DMA_CHANNEL6, 100);
+   dma_set_number_of_data(DMA1, DMA_CHANNEL6, sizeof(rx_buffer));
    dma_set_read_from_peripheral(DMA1, DMA_CHANNEL6);
    dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL6);
    dma_disable_peripheral_increment_mode(DMA1, DMA_CHANNEL6);
