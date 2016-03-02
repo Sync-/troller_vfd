@@ -108,7 +108,7 @@ void stop(void) {
    timer_set_oc_value(TIM1, TIM_OC3, 0);
 }
 
-void disabled(void) {
+void disable(void) {
    //Disable gate drivers
    gpio_clear(GPIOB, GPIO1);
    gpio_clear(GPIOB, GPIO2);
