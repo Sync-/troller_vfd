@@ -8,6 +8,6 @@
 
 #include "globals.h"
 
-void dma_setup(void);
+void dma_setup(uint32_t *rx_buffer);
 void dma_write(char *data, uint32_t size);
 void dma_read(char *data, uint32_t size);

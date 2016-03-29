@@ -12,7 +12,7 @@ typedef enum {UP, DOWN} direction_t;
 enum {RX_BUFFER_SIZE = 100, TX_BUFFER_SIZE = 10};
 
 extern volatile uint8_t tx_buffer[TX_BUFFER_SIZE];
-extern volatile uint8_t rx_buffer[RX_BUFFER_SIZE];
+//extern volatile uint8_t rx_buffer[RX_BUFFER_SIZE];
 extern state_t state;
 extern direction_t direction;
 extern uint32_t transferred;

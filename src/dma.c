@@ -1,7 +1,7 @@
 #include "dma.h"
 
 
-void dma_setup(void) {
+void dma_setup(uint32_t *rx_buffer) {
    rcc_periph_clock_enable(RCC_DMA1);
 
    dma_channel_reset(DMA1, DMA_CHANNEL1);

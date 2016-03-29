@@ -22,9 +22,6 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/flash.h>
 
-#include <string.h>
-#include <stdfix.h>
-
 #include "globals.h"
 #include "setup.h"
 #include "dma.h"
@@ -36,12 +33,14 @@ void dma1_channel1_isr(void) {
 
 int main(void)
 {
+   uint8_t rx_buffer[RX_BUFFER_SIZE];
+
    rcc_clock_setup_in_hse_8mhz_out_72mhz();
    systick_setup();
    gpio_setup();
    gpio_clear(GPIOC, GPIO0);
    usart_setup();
-   dma_setup();
+   dma_setup(&rx_buffer);
    adc_setup();
    timer_setup();
 
@@ -50,8 +49,6 @@ int main(void)
    systick_counter_enable();
 
    uint32_t delay = 0,tick_before = 0;
-
-   accum sdf = 2.4k;
 
    int32_t cur_a, cur_b, cur_c, cur_a_cal, cur_b_cal, cur_c_cal;
    uint32_t volt_dc, volt_a, volt_b, volt_c, temperature, vref;
