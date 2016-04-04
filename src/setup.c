@@ -70,12 +70,19 @@ void adc_setup(void)
 	rcc_periph_clock_enable(RCC_ADC1);
 
 	uint8_t channel_array[16];
-	adc_off(ADC1);
+	uint8_t channel_array_inj1[16];
+	uint8_t channel_array_inj2[16];
+	adc_power_off(ADC1);
 
 	adc_enable_scan_mode(ADC1);
+//   adc_disable_scan_mode(ADC1);
 	adc_set_continuous_conversion_mode(ADC1);
+//   adc_set_single_conversion_mode(ADC1);
 //	adc_disable_external_trigger_regular(ADC1);
    adc_enable_external_trigger_regular(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
+   adc_disable_discontinuous_mode_regular(ADC1);
+   adc_enable_discontinuous_mode_injected(ADC1);
+   adc_enable_external_trigger_injected(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
 	adc_set_right_aligned(ADC1);
 	adc_enable_temperature_sensor(ADC1);
 	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
@@ -95,13 +102,12 @@ void adc_setup(void)
 	channel_array[1] = 1;
 	channel_array[2] = 4;
 	channel_array[3] = 5;
-	channel_array[4] = 6;
-	channel_array[5] = 7;
-	channel_array[6] = 8;
-   channel_array[7] = 16; //Temperature
-   channel_array[8] = 17; //Vrefint
-	adc_set_regular_sequence(ADC1, 9, channel_array);
-
+   channel_array[4] = 16; //Temperature
+   channel_array[5] = 17; //Vrefint
+	adc_set_regular_sequence(ADC1, 6, channel_array);
+   
+   channel_array_inj1[0] = 7;
+	adc_set_injected_sequence(ADC1, 1, channel_array_inj1);
 }
 
 void sys_tick_handler(void)
@@ -119,6 +125,8 @@ void systick_setup(void) {
 void timer_setup(void) {
 
    rcc_periph_clock_enable(RCC_TIM1);
+
+   nvic_enable_irq(NVIC_TIM1_CC_IRQ);
 
    timer_reset             (TIM1);
    timer_set_mode          (TIM1, TIM_CR1_CKD_CK_INT,
@@ -141,7 +149,7 @@ void timer_setup(void) {
    timer_set_oc_value      (TIM1, TIM_OC3, 2);
    timer_enable_preload    (TIM1);
    timer_enable_counter    (TIM1);
-
+   timer_enable_irq        (TIM1, TIM_DIER_UIE);
 
    rcc_periph_clock_enable(RCC_TIM2);
 
