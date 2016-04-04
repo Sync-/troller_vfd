@@ -31,7 +31,7 @@ void dma1_channel1_isr(void) {
    dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_ISR_TCIF(DMA_CHANNEL1));
 }
 
-void tim1_cc_isr(void) {
+void tim1_up_isr(void) {
    if(timer_get_flag(TIM1, TIM_SR_UIF)) {
       gpio_toggle(GPIOC, GPIO1);
    }

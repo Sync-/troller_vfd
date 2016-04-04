@@ -126,7 +126,7 @@ void timer_setup(void) {
 
    rcc_periph_clock_enable(RCC_TIM1);
 
-   nvic_enable_irq(NVIC_TIM1_CC_IRQ);
+   nvic_enable_irq(NVIC_TIM1_UP_IRQ);
 
    timer_reset             (TIM1);
    timer_set_mode          (TIM1, TIM_CR1_CKD_CK_INT,
@@ -147,6 +147,8 @@ void timer_setup(void) {
    timer_set_oc_value      (TIM1, TIM_OC1, 2);
    timer_set_oc_value      (TIM1, TIM_OC2, 2);
    timer_set_oc_value      (TIM1, TIM_OC3, 2);
+   timer_update_on_overflow(TIM1);
+   timer_enable_update_event(TIM1);
    timer_enable_preload    (TIM1);
    timer_enable_counter    (TIM1);
    timer_enable_irq        (TIM1, TIM_DIER_UIE);
