@@ -31,10 +31,26 @@ void dma1_channel1_isr(void) {
    dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_ISR_TCIF(DMA_CHANNEL1));
 }
 
+volatile uint16_t cur_a = 0;
+volatile uint16_t cur_b = 0;
+volatile uint16_t cur_c = 0;
+volatile uint8_t update = 0;
 void tim1_up_isr(void) {
    if(timer_get_flag(TIM1, TIM_SR_UIF)) {
-      gpio_toggle(GPIOC, GPIO1);
+      timer_clear_flag(TIM1, TIM_SR_UIF);
+//      gpio_toggle(GPIOC, GPIO1);
+//      adc_inj = adc_read_injected(ADC1,1);
    }
+}
+
+void adc1_2_isr(void) {
+   
+   ADC_SR(ADC1) &= ~ADC_SR_JEOC;
+   cur_a = adc_read_injected(ADC1,1);
+   cur_b = adc_read_injected(ADC1,2);
+//   cur_c = adc_read_injected(ADC1,3);
+   update = 1;
+         gpio_toggle(GPIOC, GPIO1);
 }
 
 int main(void)
@@ -56,7 +72,7 @@ int main(void)
 
    uint32_t delay = 0,tick_before = 0;
 
-   int32_t cur_a, cur_b, cur_c, cur_a_cal, cur_b_cal, cur_c_cal;
+ //  int32_t cur_a, cur_b, cur_c, cur_a_cal, cur_b_cal, cur_c_cal;
    uint32_t volt_dc, volt_a, volt_b, volt_c, temperature, vref;
 
    int32_t sine_deg = 0;
@@ -76,6 +92,23 @@ int main(void)
    for (uint32_t i = 0; i < 40000; i++)    /* Wait a bit. */
       __asm__("nop");
 
+
+   uint32_t cur_a_cal, cur_b_cal, cur_c_cal;
+   cur_a_cal = cur_a;
+   cur_b_cal = cur_b;
+   cur_c_cal = cur_c;
+
+   int32_t cur_a_ma = 0;
+   int32_t cur_b_ma = 0;
+   int32_t cur_c_ma = 0;
+
+   timer_set_oc_value(TIM1, TIM_OC1, 0);
+   timer_set_oc_value(TIM1, TIM_OC2, 10);
+   timer_set_oc_value(TIM1, TIM_OC3, 10);
+//   timer_enable_irq(TIM1, TIM_DIER_UIE);
+
+   uint16_t timer_val = 1000;
+
    while (1) {
 
             volt_dc = 158 * ADC_values[0];
@@ -83,7 +116,28 @@ int main(void)
             volt_b = 117 * ADC_values[2];
             volt_c = 117 * ADC_values[3];
 
-            adc_inj = adc_read_injected(ADC1, 1);
+            if(update == 1) {      
+               cur_a_ma = (cur_a - cur_a_cal)*29;
+               cur_b_ma = (cur_b - cur_b_cal)*29;
+//               cur_c_ma = (cur_c - cur_c_cal)*29;
+
+               if(cur_b_ma > 10000) {
+                  timer_val--;
+               } else if(cur_b_ma < 9900) {
+                  timer_val++;
+               }
+               if(timer_val > 1900) {
+                  timer_val = 1900;
+               } else if(timer_val < 20) {
+                  timer_val = 20;
+               }
+               timer_set_oc_value(TIM1, TIM_OC3, timer_val);
+               update = 0;
+            }
+      if(cur_a > 1000 && cur_b > 1000 && cur_c > 1000) {
+//         gpio_toggle(GPIOC, GPIO1);
+      }
+//            adc_inj = adc_read_injected(ADC1, 1);
    }
    return 0;
 }
