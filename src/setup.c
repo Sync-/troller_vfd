@@ -76,17 +76,26 @@ void adc_setup(void)
 
 	adc_enable_scan_mode(ADC1);
 //   adc_disable_scan_mode(ADC1);
-	adc_set_continuous_conversion_mode(ADC1);
-//   adc_set_single_conversion_mode(ADC1);
+//	adc_set_continuous_conversion_mode(ADC1);
+   adc_set_single_conversion_mode(ADC1);
 //	adc_disable_external_trigger_regular(ADC1);
-   adc_enable_external_trigger_regular(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
-   adc_disable_discontinuous_mode_regular(ADC1);
-   adc_enable_discontinuous_mode_injected(ADC1);
-   adc_enable_external_trigger_injected(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
+//   adc_enable_external_trigger_regular(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
+//   adc_disable_discontinuous_mode_regular(ADC1);
+//   adc_enable_discontinuous_mode_injected(ADC1);
+   adc_enable_external_trigger_injected(ADC1, ADC_CR2_JEXTSEL_TIM1_TRGO);
 	adc_set_right_aligned(ADC1);
 	adc_enable_temperature_sensor(ADC1);
-	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_28DOT5CYC);
+	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_7DOT5CYC);
 
+   adc_enable_eoc_interrupt_injected(ADC1);
+
+   nvic_set_priority(NVIC_ADC1_2_IRQ, 1);
+   nvic_enable_irq(NVIC_ADC1_2_IRQ);
+
+   channel_array_inj1[0] = 6;
+   channel_array_inj1[1] = 7;
+//   channel_array_inj1[2] = 8;
+	adc_set_injected_sequence(ADC1, 2, channel_array_inj1);
 	adc_power_on(ADC1);
 
 	/* Wait for ADC starting up. */
@@ -106,8 +115,6 @@ void adc_setup(void)
    channel_array[5] = 17; //Vrefint
 	adc_set_regular_sequence(ADC1, 6, channel_array);
    
-   channel_array_inj1[0] = 7;
-	adc_set_injected_sequence(ADC1, 1, channel_array_inj1);
 }
 
 void sys_tick_handler(void)
@@ -149,9 +156,10 @@ void timer_setup(void) {
    timer_set_oc_value      (TIM1, TIM_OC3, 2);
    timer_update_on_overflow(TIM1);
    timer_enable_update_event(TIM1);
+   timer_set_repetition_counter(TIM1, 1);
+   timer_set_master_mode(TIM1, TIM_CR2_MMS_UPDATE);
    timer_enable_preload    (TIM1);
    timer_enable_counter    (TIM1);
-   timer_enable_irq        (TIM1, TIM_DIER_UIE);
 
    rcc_periph_clock_enable(RCC_TIM2);
 
