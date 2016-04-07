@@ -68,24 +68,31 @@ void adc_setup(void)
 	int i;
 
 	rcc_periph_clock_enable(RCC_ADC1);
+	rcc_periph_clock_enable(RCC_ADC2);
 
 	uint8_t channel_array[16];
 	uint8_t channel_array_inj1[16];
 	uint8_t channel_array_inj2[16];
 	adc_power_off(ADC1);
+	adc_power_off(ADC2);
 
 	adc_enable_scan_mode(ADC1);
 //   adc_disable_scan_mode(ADC1);
 //	adc_set_continuous_conversion_mode(ADC1);
    adc_set_single_conversion_mode(ADC1);
+   adc_set_single_conversion_mode(ADC2);
+   adc_set_dual_mode(ADC_CR1_DUALMOD_ISM);
 //	adc_disable_external_trigger_regular(ADC1);
 //   adc_enable_external_trigger_regular(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
 //   adc_disable_discontinuous_mode_regular(ADC1);
 //   adc_enable_discontinuous_mode_injected(ADC1);
    adc_enable_external_trigger_injected(ADC1, ADC_CR2_JEXTSEL_TIM1_TRGO);
+   adc_enable_external_trigger_injected(ADC2, ADC_CR2_JEXTSEL_TIM1_TRGO);
 	adc_set_right_aligned(ADC1);
+	adc_set_right_aligned(ADC2);
 	adc_enable_temperature_sensor(ADC1);
 	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_7DOT5CYC);
+	adc_set_sample_time_on_all_channels(ADC2, ADC_SMPR_SMP_7DOT5CYC);
 
    adc_enable_eoc_interrupt_injected(ADC1);
 
@@ -93,10 +100,12 @@ void adc_setup(void)
    nvic_enable_irq(NVIC_ADC1_2_IRQ);
 
    channel_array_inj1[0] = 6;
-   channel_array_inj1[1] = 7;
+   channel_array_inj2[0] = 7;
 //   channel_array_inj1[2] = 8;
-	adc_set_injected_sequence(ADC1, 2, channel_array_inj1);
+	adc_set_injected_sequence(ADC1, 1, channel_array_inj1);
+	adc_set_injected_sequence(ADC2, 1, channel_array_inj2);
 	adc_power_on(ADC1);
+	adc_power_on(ADC2);
 
 	/* Wait for ADC starting up. */
 	for (i = 0; i < 800000; i++)    /* Wait a bit. */
@@ -104,8 +113,11 @@ void adc_setup(void)
 
 	adc_reset_calibration(ADC1);
 	adc_calibration(ADC1);
+	adc_reset_calibration(ADC2);
+	adc_calibration(ADC2);
 
    adc_enable_dma(ADC1);
+   adc_enable_dma(ADC2);
 
 	channel_array[0] = 0;
 	channel_array[1] = 1;

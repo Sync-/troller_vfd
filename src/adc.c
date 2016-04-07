@@ -47,7 +47,7 @@ void adc1_2_isr(void) {
    
    ADC_SR(ADC1) &= ~ADC_SR_JEOC;
    cur_a = adc_read_injected(ADC1,1);
-   cur_b = adc_read_injected(ADC1,2);
+   cur_b = adc_read_injected(ADC2,1);
 //   cur_c = adc_read_injected(ADC1,3);
    update = 1;
          gpio_toggle(GPIOC, GPIO1);
@@ -117,13 +117,13 @@ int main(void)
             volt_c = 117 * ADC_values[3];
 
             if(update == 1) {      
-               cur_a_ma = (cur_a - cur_a_cal)*29;
-               cur_b_ma = (cur_b - cur_b_cal)*29;
+               cur_a_ma = (cur_a - cur_a_cal)*30;
+               cur_b_ma = (cur_b - cur_b_cal)*30;
 //               cur_c_ma = (cur_c - cur_c_cal)*29;
 
-               if(cur_b_ma > 10000) {
+               if(abs(cur_a_ma) > 1000) {
                   timer_val--;
-               } else if(cur_b_ma < 9900) {
+               } else if(abs(cur_a_ma) < 900) {
                   timer_val++;
                }
                if(timer_val > 1900) {
