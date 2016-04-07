@@ -73,19 +73,14 @@ void adc_setup(void)
 	uint8_t channel_array[16];
 	uint8_t channel_array_inj1[16];
 	uint8_t channel_array_inj2[16];
+
 	adc_power_off(ADC1);
 	adc_power_off(ADC2);
 
 	adc_enable_scan_mode(ADC1);
-//   adc_disable_scan_mode(ADC1);
-//	adc_set_continuous_conversion_mode(ADC1);
    adc_set_single_conversion_mode(ADC1);
    adc_set_single_conversion_mode(ADC2);
    adc_set_dual_mode(ADC_CR1_DUALMOD_ISM);
-//	adc_disable_external_trigger_regular(ADC1);
-//   adc_enable_external_trigger_regular(ADC1, ADC_CR2_JEXTSEL_TIM2_TRGO);
-//   adc_disable_discontinuous_mode_regular(ADC1);
-//   adc_enable_discontinuous_mode_injected(ADC1);
    adc_enable_external_trigger_injected(ADC1, ADC_CR2_JEXTSEL_TIM1_TRGO);
    adc_enable_external_trigger_injected(ADC2, ADC_CR2_JEXTSEL_TIM1_TRGO);
 	adc_set_right_aligned(ADC1);

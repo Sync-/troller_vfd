@@ -77,10 +77,6 @@ int main(void)
 
    int32_t sine_deg = 0;
 
-   gpio_set(GPIOC, GPIO0);
-   gpio_set(GPIOB, GPIO1);
-   gpio_set(GPIOB, GPIO2);
-   gpio_set(GPIOB, GPIO3);
 
    char text[10] = "test\r\n";
 
@@ -101,6 +97,11 @@ int main(void)
    int32_t cur_a_ma = 0;
    int32_t cur_b_ma = 0;
    int32_t cur_c_ma = 0;
+
+   gpio_set(GPIOC, GPIO0);
+   gpio_set(GPIOB, GPIO1);
+   gpio_set(GPIOB, GPIO2);
+   gpio_set(GPIOB, GPIO3);
 
    timer_set_oc_value(TIM1, TIM_OC1, 0);
    timer_set_oc_value(TIM1, TIM_OC2, 10);
