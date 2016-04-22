@@ -57,7 +57,8 @@ int main(void)
 {
    uint8_t rx_buffer[RX_BUFFER_SIZE];
 
-   rcc_clock_setup_in_hse_8mhz_out_72mhz();
+//   rcc_clock_setup_in_hse_8mhz_out_72mhz();
+   rcc_clock_setup_in_hsi_out_64mhz();
    systick_setup();
    gpio_setup();
    gpio_clear(GPIOC, GPIO0);
@@ -104,8 +105,8 @@ int main(void)
    gpio_set(GPIOB, GPIO3);
 
    timer_set_oc_value(TIM1, TIM_OC1, 0);
-   timer_set_oc_value(TIM1, TIM_OC2, 10);
-   timer_set_oc_value(TIM1, TIM_OC3, 10);
+   timer_set_oc_value(TIM1, TIM_OC2, 1000);
+   timer_set_oc_value(TIM1, TIM_OC3, 1000);
 //   timer_enable_irq(TIM1, TIM_DIER_UIE);
 
    uint16_t timer_val = 1000;
@@ -122,9 +123,9 @@ int main(void)
                cur_b_ma = (cur_b - cur_b_cal)*30;
 //               cur_c_ma = (cur_c - cur_c_cal)*29;
 
-               if(abs(cur_a_ma) > 1000) {
+               if(abs(cur_a_ma) > 10000) {
                   timer_val--;
-               } else if(abs(cur_a_ma) < 900) {
+               } else if(abs(cur_a_ma) < 9900) {
                   timer_val++;
                }
                if(timer_val > 1900) {
@@ -132,13 +133,12 @@ int main(void)
                } else if(timer_val < 20) {
                   timer_val = 20;
                }
-               timer_set_oc_value(TIM1, TIM_OC3, timer_val);
+//               timer_set_oc_value(TIM1, TIM_OC3, timer_val);
+               tx_buffer[0] = cur_a >> 4;
+               transferred = 0;
+               dma_write(tx_buffer, 1);
                update = 0;
             }
-      if(cur_a > 1000 && cur_b > 1000 && cur_c > 1000) {
-//         gpio_toggle(GPIOC, GPIO1);
-      }
-//            adc_inj = adc_read_injected(ADC1, 1);
    }
    return 0;
 }

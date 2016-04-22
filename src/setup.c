@@ -36,6 +36,11 @@ void gpio_setup(void)
             GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
             GPIO_TIM1_CH1 | GPIO_TIM1_CH2 | GPIO_TIM1_CH3);
 
+   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ,
+            GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
+            GPIO13 | GPIO14 | GPIO15 | GPIO1);
+
+//   AFIO_MAPR = AFIO_MAPR_TIM1_REMAP_PARTIAL_REMAP;
 }
 
 void usart_setup(void)
@@ -145,7 +150,7 @@ void timer_setup(void) {
    timer_reset             (TIM1);
    timer_set_mode          (TIM1, TIM_CR1_CKD_CK_INT,
                         TIM_CR1_CMS_CENTER_3, TIM_CR1_DIR_UP);
-   timer_set_prescaler     (TIM1, 8);
+   timer_set_prescaler     (TIM1, 1);
 //   timer_set_period        (TIM1, 2000);
    timer_set_period        (TIM1,1999);
    timer_set_oc_mode       (TIM1, TIM_OC1, TIM_OCM_PWM1);
@@ -157,6 +162,9 @@ void timer_setup(void) {
    timer_enable_oc_output  (TIM1, TIM_OC1);
    timer_enable_oc_output  (TIM1, TIM_OC2);
    timer_enable_oc_output  (TIM1, TIM_OC3);
+   timer_enable_oc_output  (TIM1, TIM_OC1N);
+   timer_enable_oc_output  (TIM1, TIM_OC2N);
+   timer_enable_oc_output  (TIM1, TIM_OC3N);
    timer_enable_break_main_output(TIM1);
    timer_set_oc_value      (TIM1, TIM_OC1, 2);
    timer_set_oc_value      (TIM1, TIM_OC2, 2);
